@@ -8,27 +8,21 @@
 body {
   font-family: Arial, sans-serif;
   background-color: #f7f7f7;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  flex-direction: column;
+  margin: 0;
+  padding: 0;
 }
 
 .app-container {
-  text-align: center;
-  width: 80%;
-  max-width: 600px;
-}
-
-.meme-editor {
-  background: white;
+  max-width: 100%;
   padding: 20px;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin: auto;
 }
 
+@media (min-width: 600px) {
+  .app-container {
+    max-width: 600px;
+  }
+  
 .meme-editor h2 {
   margin-bottom: 10px;
 }
@@ -89,3 +83,21 @@ body {
   display: block;
 }
 
+.template-selector {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.template-selector img {
+  width: 80px;
+  height: 80px;
+}
+
+@media (min-width: 400px) {
+  .template-selector img {
+    width: 100px;
+    height: 100px;
+  }
+}
