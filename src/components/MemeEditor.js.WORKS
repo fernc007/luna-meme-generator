@@ -1,0 +1,164 @@
+import React, { useState, useRef } from 'react';
+import supabase from '../supabaseClient';
+
+function MemeEditor({ addMeme }) {
+// eslint-disable-next-line
+  const [image, setImage] = useState(null);
+  const [memeText, setMemeText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const canvasRef = useRef(null);
+
+  // Upload image to Supabase
+  const uploadImage = async (image) => {
+    const fileName = `${Date.now()}-${image.name}`;
+    // eslint-disable-next-line
+    const { data, error } = await supabase.storage
+      .from('luna-meme') // ✅ Make sure this is your actual bucket name
+      .upload(fileName, image);
+
+    if (error) {
+      console.error('Error uploading image:', error.message);
+      return null;
+    }
+
+    return fileName;
+  };
+
+  // Save metadata to Supabase table
+  const saveMemeToDatabase = async (imageUrl, memeText) => {
+    const { data, error } = await supabase
+      .from('memes')
+      .insert([
+        {
+          text: memeText,
+          upVotes: 0,
+          downVotes: 0,
+	  image_url: imageUrl
+        },
+      ])
+	.select();
+
+    if (error) {
+      console.error('Error inserting meme into database:', error.message);
+      return;
+    }
+  
+   if (data && data.length > 0) {
+    addMeme(data[0]);
+  } else {
+    console.warn('No data returned from insert');
+  }
+
+    //addMeme(data[0]);
+  };
+
+  // Draw the image + text on the canvas
+  const drawMeme = (image) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    ctx.drawImage(image, 0, 0);
+
+    // Style and draw the text
+    const fontSize = Math.floor(image.width / 15);
+    ctx.font = `${fontSize}px Impact`;
+    ctx.fillStyle = 'white';
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 4;
+    ctx.textAlign = 'center';
+
+    const x = canvas.width / 2;
+    const y = canvas.height - 40;
+
+    ctx.fillText(memeText.toUpperCase(), x, y);
+    ctx.strokeText(memeText.toUpperCase(), x, y);
+  };
+
+  // Handles file upload and drawing
+  const processImageUpload = async () => {
+    //const file = e.target.files[0];
+    if (!image) return;
+
+    setLoading(true);
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(image);
+    img.src = objectUrl;
+
+    img.onload = async () => {
+      drawMeme(img);
+
+      const canvas = canvasRef.current;
+      const dataUrl = canvas.toDataURL('image/png');
+      const blob = await fetch(dataUrl).then((res) => res.blob());
+      const memeFile = new File([blob], 'meme.png', { type: 'image/png' });
+
+      const imagePath = await uploadImage(memeFile);
+
+      if (imagePath) {
+        const imageUrl = `https://vtncarurbitlxhsekmpm.supabase.co/storage/v1/object/public/memes/${imagePath}`;
+        await saveMemeToDatabase(imageUrl, memeText);
+      }
+
+      setLoading(false);
+    };
+
+    img.onerror = () => {
+      console.error('Image failed to load.');
+      setLoading(false);
+    };
+
+    setImage(image);
+  };
+
+	const handleFileChange = (e) => {
+  const selectedFile = e.target.files[0];
+  if (selectedFile) {
+    setImage(selectedFile);
+const img = new Image();
+    const objectUrl = URL.createObjectURL(selectedFile);
+    img.src = objectUrl;
+
+    img.onload = () => {
+      drawMeme(img);
+    };
+
+    img.onerror = () => {
+      console.error('Failed to load preview image.');
+    };
+  }
+};
+
+
+  return (
+    <div style={{ marginTop: '20px' }}>
+      <input
+        type="text"
+        placeholder="Enter meme text"
+        value={memeText}
+        onChange={(e) => setMemeText(e.target.value)}
+        disabled={loading}
+        style={{ marginBottom: '10px', width: '100%' }}
+      />
+      <input
+        type="file"
+        onChange={handleFileChange}
+        disabled={loading}
+        accept="image/*"
+      />
+      <button onClick={processImageUpload} disabled={loading || !memeText || !image}>
+        {loading ? 'Uploading...' : 'Upload Meme'}
+      </button>
+
+      {/* Canvas for preview/debug */}
+	  <div className="preview-box">
+      <canvas ref={canvasRef} /*style={{ border: '1px solid #ccc', marginTop: '20px', maxWidth: '100%' }}*/ />
+	  </div>
+    </div>
+  );
+}
+
+export default MemeEditor;

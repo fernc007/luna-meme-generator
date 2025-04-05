@@ -1,0 +1,22 @@
+// src/App.js
+import React, { useState } from 'react';
+import MemeEditor from '/root/meme-generator/src/components/MemeEditor.js';
+import MemeDisplay from '/root/meme-generator/src/components/MemeDisplay.js';
+import './index.css'; // import global CSS
+
+function App() {
+  const [meme, setMeme] = useState(null);
+
+  const handleCreateMeme = (newMeme) => {
+    setMeme(newMeme);
+  };
+
+  return (
+    <div className="app-container">
+      <MemeEditor onCreateMeme={handleCreateMeme} />
+      <MemeDisplay meme={meme} />
+    </div>
+  );
+}
+
+export default App;

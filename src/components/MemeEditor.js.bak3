@@ -1,0 +1,99 @@
+import React, { useState } from 'react';
+import supabase from '../supabaseClient';
+
+function MemeEditor({ addMeme }) {
+// eslint-disable-next-line
+  const [image, setImage] = useState(null);
+  const [memeText, setMemeText] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Upload image to Supabase Storage
+  const uploadImage = async (file) => {
+    const fileName = `${Date.now()}-${file.name}`;
+    const { data, error } = await supabase.storage
+      .from('luna-meme')  // Ensure the bucket name is correct
+      .upload(fileName, file);
+
+    if (error) {
+      console.error('Error uploading image:', error.message);
+      return null;
+    }
+
+    return data.Key; // The file path in Supabase storage
+  };
+
+  // Save meme to Supabase Database
+  const saveMemeToDatabase = async (imageUrl, memeText) => {
+    const { data, error } = await supabase
+      .from('memes')
+      .insert([
+        {
+          image_url: imageUrl,
+          text: memeText,
+          upvotes: 0,
+          downvotes: 0,
+        },
+      ]);
+
+    if (error) {
+      console.error('Error inserting meme into database:', error.message);
+      return;
+    }
+
+    console.log('Meme saved:', data);
+    addMeme(data[0]);  // Add meme to parent component (App.js)
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+
+    const imagePath = await uploadImage(file);
+
+    if (imagePath) {
+      const imageUrl = `https://vtncarurbitlxhsekmpm.supabase.co/storage/v1/object/public/luna-meme/${imagePath}`;
+      await saveMemeToDatabase(imageUrl, memeText);
+    }
+
+    setLoading(false);
+  };
+
+  const handleSubmit = () => {
+    if (!image) {
+      alert('Please upload an image before submitting.');
+      return;
+    }
+    if (!memeText) {
+      alert('Please enter meme text.');
+      return;
+    }
+
+    // Trigger the image upload and save meme
+    handleImageUpload({ target: { files: [image] } });
+  };
+
+return (
+    <div className="meme-editor">
+      <input 
+        type="text" 
+        placeholder="Enter meme text" 
+        value={memeText} 
+        onChange={(e) => setMemeText(e.target.value)} 
+      />
+      <input 
+        type="file" 
+        onChange={(e) => setImage(e.target.files[0])} 
+        disabled={loading}
+      />
+      <button onClick={handleSubmit} disabled={loading}>
+        {loading ? 'Uploading...' : 'Upload Meme'}
+      </button>
+      {loading && <p>Uploading...</p>}
+    </div>
+  );
+
+}
+
+export default MemeEditor;

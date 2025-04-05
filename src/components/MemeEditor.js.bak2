@@ -1,0 +1,121 @@
+import React, { useState } from 'react';
+import supabase from '../supabaseClient';
+
+function MemeEditor({ onCreateMeme }) {
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [text, setText] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+    }
+  };
+
+  const uploadImage = async (file) => {
+    const fileName = `${Date.now()}-${file.name}`;
+    const { data, error } = await supabase.storage
+      .from('luna-meme')
+      .upload(fileName, file);
+
+    if (error) {
+      console.error('Error uploading image:', error.message);
+      return null;
+    }
+
+    return data.Key; // The file path in Supabase storage
+  };
+
+  const saveMemeToDatabase = async (imageUrl, memeText) => {
+  const { data, error } = await supabase
+    .from('memes')
+    .insert([
+      {
+        image_url: imageUrl, // URL of the uploaded image
+        text: memeText, // The text added by the user
+        upvotes: 0, // Initialize upvotes to 0
+        downvotes: 0, // Initialize downvotes to 0
+      },
+    ]);
+
+  if (error) {
+    console.error('Error inserting meme into database:', error.message);
+    return;
+  }
+
+  console.log('Meme saved:', data);
+};
+
+const handleImageUpload = async (e) => {
+  const file = e.target.files[0];
+  const memeText = document.getElementById('meme-text').value;
+  const imagePath = await uploadImage(file);
+
+  if (imagePath) {
+    const imageUrl = `https://your-supabase-url/storage/v1/object/public/memes/${imagePath}`;
+    await saveMemeToDatabase(imageUrl, memeText);
+  }
+};
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedImage || !text) return;
+
+    setUploading(true);
+
+    // Upload the image to Supabase storage
+    const imageKey = await uploadImage(selectedImage);
+    if (!imageKey) {
+      setUploading(false);
+      return;
+    }
+
+    // Get the public URL for the image
+    const { publicURL, error } = supabase.storage
+      .from('memes')
+      .getPublicUrl(imageKey);
+
+    if (error) {
+      console.error('Error fetching public URL:', error.message);
+      setUploading(false);
+      return;
+    }
+
+    // Create the meme object
+    const meme = {
+      image: publicURL,
+      text,
+    };
+
+    // Call the callback function to pass the meme to the parent component
+    onCreateMeme(meme);
+    setUploading(false);
+  };
+
+  return (
+    <div className="meme-editor">
+      <h2>Create Your Meme</h2>
+      <form onSubmit={handleSubmit}>
+        <input type="file" accept="image/*" onChange={handleImageChange} />
+        <input
+          type="text"
+          placeholder="Enter your text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <button type="submit" disabled={uploading}>
+          {uploading ? 'Uploading...' : 'Create Meme'}
+        </button>
+      </form>
+      {selectedImage && (
+        <div className="meme-preview">
+          <img src={URL.createObjectURL(selectedImage)} alt="Selected for meme" />
+          <p>{text}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default MemeEditor;

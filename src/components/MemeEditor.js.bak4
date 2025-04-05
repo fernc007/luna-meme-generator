@@ -1,0 +1,136 @@
+import React, { useState, useRef } from 'react';
+import supabase from '../supabaseClient';
+
+function MemeEditor({ addMeme }) {
+    // eslint-disable-next-line
+  const [image, setImage] = useState(null);
+  const [memeText, setMemeText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const canvasRef = useRef(null);
+
+  // Upload image to Supabase Storage
+  const uploadImage = async (file) => {
+    const fileName = `${Date.now()}-${file.name}`;
+    const { data, error } = await supabase.storage
+      .from('luna-meme')  // Ensure the bucket name is correct
+      .upload(fileName, file);
+
+    if (error) {
+      console.error('Error uploading image:', error.message);
+      return null;
+    }
+
+    return data.Key; // The file path in Supabase storage
+  };
+
+  // Save meme to Supabase Database
+  const saveMemeToDatabase = async (imageUrl, memeText) => {
+    const { data, error } = await supabase
+      .from('luna-meme')
+      .insert([
+        {
+          image_url: imageUrl,
+          text: memeText,
+          upvotes: 0,
+          downvotes: 0,
+        },
+      ]);
+
+    if (error) {
+      console.error('Error inserting meme into database:', error.message);
+      return;
+    }
+
+    console.log('Meme saved:', data);
+    addMeme(data[0]);  // Add meme to parent component (App.js)
+  };
+
+  // Draw image with text on canvas
+  const drawMeme = (image) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    // Draw the image on the canvas
+    ctx.drawImage(image, 0, 0);
+
+    // Set text properties
+    ctx.font = '40px Arial';
+    ctx.fillStyle = 'white';
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 5;
+    ctx.textAlign = 'center';
+
+    // Add text on top of the image
+    ctx.fillText(memeText, canvas.width / 2, canvas.height - 30); // Adjust position as needed
+    ctx.strokeText(memeText, canvas.width / 2, canvas.height - 30);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setLoading(true);
+
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      drawMeme(img);
+    };
+
+    setImage(file); // Set the selected image
+  };
+
+  const handleSubmit = async () => {
+    if (!image) {
+      alert('Please upload an image before submitting.');
+      return;
+    }
+    if (!memeText) {
+      alert('Please enter meme text.');
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    const imageUrl = canvas.toDataURL('image/png'); // Convert canvas to data URL
+
+    // Convert the data URL to a Blob
+    const blob = await fetch(imageUrl).then((res) => res.blob());
+    const file = new File([blob], 'meme.png', { type: 'image/png' });
+
+    const imagePath = await uploadImage(file);
+
+    if (imagePath) {
+      const imageUrlForDisplay = `https://vtncarurbitlxhsekmpm.supabase.co/storage/v1/object/public/luna-meme/${imagePath}`;
+      await saveMemeToDatabase(imageUrlForDisplay, memeText);
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <div className="meme-editor">
+      <input 
+        type="text" 
+        placeholder="Enter meme text" 
+        value={memeText} 
+        onChange={(e) => setMemeText(e.target.value)} 
+      />
+      <input 
+        type="file" 
+        onChange={handleImageUpload} 
+        disabled={loading}
+      />
+      <button onClick={handleSubmit} disabled={loading}>
+        {loading ? 'Uploading...' : 'Upload Meme'}
+      </button>
+      {loading && <p>Uploading...</p>}
+
+      {/* Canvas to draw the image and meme text */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+    </div>
+  );
+}
+
+export default MemeEditor;
