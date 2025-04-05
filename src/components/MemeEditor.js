@@ -2,9 +2,10 @@ import React, { useState, useRef } from 'react';
 import supabase from '../supabaseClient';
 
 const memeTemplates = [
-  'https://vtncarurbitlxhsekmpm.supabase.co/storage/v1/object/public/luna-meme//luna-1.png',
+  'https://vtncarurbitlxhsekmpm.supabase.co/storage/v1/object/public/luna-meme//luna-1.jpg',
   'https://vtncarurbitlxhsekmpm.supabase.co/storage/v1/object/public/luna-meme//luna-2.jpg',
   'https://vtncarurbitlxhsekmpm.supabase.co/storage/v1/object/public/luna-meme//luna-3.jpg',
+  'https://vtncarurbitlxhsekmpm.supabase.co/storage/v1/object/public/luna-meme//luna-4.jpg'
 ];
 
 function MemeEditor({ addMeme }) {
