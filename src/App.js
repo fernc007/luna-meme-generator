@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import MemeEditor from '/root/meme-generator/src/components/MemeEditor.js';
 // import MemeDisplay from '/root/meme-generator/src/components/MemeDisplay.js';
-import '/root/meme-generator/src/index.css'; // Importing styles
+import './index.css'; // Importing styles
 
 function App() {
   // Initialize memes as an empty array
