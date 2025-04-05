@@ -152,16 +152,16 @@ function MemeEditor({ addMeme }) {
         ))}
       </div>
 
+      <div className="preview-box">
+        <canvas ref={canvasRef} />
+      </div>
+	      
       <button
         onClick={processImageUpload}
         disabled={loading || !memeText || !selectedTemplate}
       >
         {loading ? 'Uploading...' : 'Upload Meme'}
       </button>
-
-      <div className="preview-box">
-        <canvas ref={canvasRef} />
-      </div>
     </div>
   );
 }
