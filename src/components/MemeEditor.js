@@ -123,7 +123,7 @@ function MemeEditor({ addMeme }) {
   };
 
   return (
-    <div style={{ marginTop: '20px' }}>
+  <div className="app-container meme-editor">
       <input
         type="text"
         placeholder="Enter meme text"
