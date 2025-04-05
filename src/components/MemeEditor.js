@@ -35,8 +35,7 @@ function MemeEditor({ addMeme }) {
       .insert([
         {
           text: memeText,
-          upVotes: 0,
-          downVotes: 0,
+          upVote: 0,
           image_url: imageUrl,
         },
       ])
